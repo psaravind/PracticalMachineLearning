@@ -1,0 +1,101 @@
+---
+title: "Practical Machine Learning Project"
+author: "P.S. Aravind"
+date: "Saturday, January 24, 2015"
+output: html_document
+---
+
+### Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. 
+
+In this project, my goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participant and create a model to predict classes(sitting-down, standing-up, standing, walking and sitting) for new data.
+
+### Load library and data
+
+The training data for this project are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here: 
+
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har.
+
+```{r}
+library(caret)
+library(randomForest)
+
+train <- read.csv("C:/Aravind/Coursera/Practical Machine Learning/pml-training.csv", na.strings=c("NA", " ", ""))
+test <- read.csv("C:/Aravind/Coursera/Practical Machine Learning/pml-testing.csv", na.strings=c("NA", " ", ""))
+
+dim(train)
+dim(test)
+```
+
+Original training data set had `r nrow(train)` rows and `r ncol(train)` columns, test data set had `r nrow(test)` rows and `r ncol(test)` columns.
+
+### Data cleanup and create training and test data
+
+First 8 columns were removed from the data set since they were not relavant for modeling, any column that had NA, blank or no value even for 1 row were removed.
+
+```{r}
+train <- train[, which(apply(train, 2, function(x) {sum(is.na(x))}) == 0)]
+train <- train[8:length(train)]
+
+test <- test[, which(apply(test, 2, function(x) {sum(is.na(x))}) == 0)]
+test <- test[8:length(test)]
+```
+
+### Create Model
+
+Test(70%) data set for creating a model and cross validation(30%) data set for validating the model created from the test set.
+
+```{r}
+inTrain <- createDataPartition(y=train$classe, p=.7, list=FALSE)
+
+t <- train[inTrain,]
+cv <- train[-inTrain,]
+```
+
+Create a randomforest model to predict classification of the training set and using all other variables as predictors.  Random forests are an ensemble learning method for classification, that operate by constructing a multitude of decision trees at training time and outputting the class that is the mode of the classes.
+
+```{r}
+rfmodel <- randomForest(classe ~., data=t)
+
+rfmodel
+```
+
+Confusion matrix shows very low class error for each classification, which gives us confidence to use the model to predict new values.  The Out Of Bag(OOB) estimate of error rate is 0.53% which is resonable to use the model for prediction. 
+
+### Predicting new values with Cross Validation 
+
+Use the model to predict the cross validation data set.
+
+```{r}
+predictcv <- predict(rfmodel, cv)
+```
+
+### Confuction Matrix and Statistics
+
+Display confuction matrix and statistics
+
+```{r}
+confusionMatrix(cv$classe, predictcv)
+```
+
+Prediction accuracy for the cross validation set is 99.5% which is very high, which gives us high confidence to predict new data.  High prediction accuracy has validated that omitting some of the columns from our model creation has not affected our analysis.
+
+### Use model to predict test set
+
+We will use this prediction model to predict 20 different test cases
+```{r}
+predicttest <- predict(rfmodel, test)
+predicttest
+```
+
+### Conclusion
+
+Using Random Forest modeling I was able to predict a person's exercise classes for the data collected by Human Activity Recognition(HAR) project.   Pervasive computing research along with Machine Learning algorithms its possible to build systems that would help support weight-loss programs and digital assistants for weight lifting exercises. 
+
